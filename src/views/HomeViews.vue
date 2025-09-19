@@ -5,40 +5,57 @@ import { useSwagger } from '@/composables/useSwagger'
 import { ref } from 'vue'
 import { useAppStore } from '@/stores/useAppStore.ts'
 import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
 
 const appStore = useAppStore()
 
 const { serviceList, swaggerConfigLoading, currentServiceUrl } = storeToRefs(appStore)
 
-const { swaggerDoc, loading, error, fetchSwagger, groupByTags } = useSwagger()
+const { swaggerDoc, loading, error, fetchSwagger, groupData } = useSwagger()
 const selected = ref<{ path: string; method: string } | null>(null)
+
+const router = useRouter()
+const route = useRoute()
 
 // 切换服务时
 const onCurrentServiceUrlChange = async (e) => {
   await fetchSwagger()
+}
+
+const onSelect = (path: string, method: string) => {
+  selected.value = { path, method }
+  router.push({
+    query: {
+      path: path,
+      method: method,
+    },
+  })
 }
 </script>
 
 <template>
   <el-container class="home-view">
     <el-aside>
-      <div style="padding: 12px 12px 0">
-        <el-select
-          v-if="serviceList.length"
-          v-model="currentServiceUrl"
-          placeholder="请选择服务"
-          :loading="swaggerConfigLoading"
-          @change="onCurrentServiceUrlChange"
-        >
-          <el-option
-            v-for="item in serviceList"
-            :key="item.url"
-            :label="item.name"
-            :value="item.url"
-          />
-        </el-select>
-      </div>
-      <ApiList :groups="groupByTags()" @select="(p, m) => (selected = { path: p, method: m })" />
+      <ApiList :groups="groupData" @select="onSelect">
+        <template #header-top>
+          <div>
+            <el-select
+              v-if="serviceList.length"
+              v-model="currentServiceUrl"
+              placeholder="请选择服务"
+              :loading="swaggerConfigLoading"
+              @change="onCurrentServiceUrlChange"
+            >
+              <el-option
+                v-for="item in serviceList"
+                :key="item.url"
+                :label="item.name"
+                :value="item.url"
+              />
+            </el-select>
+          </div>
+        </template>
+      </ApiList>
     </el-aside>
     <el-container>
       <!--      <el-header>Header</el-header>-->

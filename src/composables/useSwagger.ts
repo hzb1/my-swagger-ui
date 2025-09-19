@@ -1,8 +1,7 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { ApiGroup } from '@/types/swagger'
 import type { SwaggerDoc } from '@/api/data.type.ts'
-import { mockApi, getApiDocs } from '@/api/swagger.ts'
-import { comment } from 'postcss'
+import { getApiDocs } from '@/api/swagger.ts'
 
 export function useSwagger() {
   const swaggerDoc = ref<SwaggerDoc | null>(null)
@@ -15,6 +14,7 @@ export function useSwagger() {
     try {
       const res = await getApiDocs()
       // const json = await mockApi()
+      console.log('swaggerDoc', res)
       swaggerDoc.value = res
       // localStorage.setItem('swagger_last_url', url)
     } catch (e: any) {
@@ -43,5 +43,9 @@ export function useSwagger() {
     return Object.values(groups)
   }
 
-  return { swaggerDoc, loading, error, fetchSwagger, groupByTags }
+  const groupData = computed(() => {
+    return groupByTags()
+  })
+
+  return { swaggerDoc, loading, error, fetchSwagger, groupByTags, groupData }
 }

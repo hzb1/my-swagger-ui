@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ApiGroup } from '@/types/swagger'
+import ApiItem from '@/components/ApiItem.vue'
 
 const props = defineProps<{ groups: ApiGroup[] }>()
 const emit = defineEmits<{ (e: 'select', path: string, method: string): void }>()
@@ -23,6 +24,7 @@ const filtered = computed(() =>
 <template>
   <div class="aside-menu">
     <div class="header">
+      <slot name="header-top" />
       <el-input v-model="keyword" placeholder="搜索接口" clearable class="mb-3" />
     </div>
 
@@ -30,29 +32,36 @@ const filtered = computed(() =>
       <div>
         <el-collapse>
           <el-collapse-item v-for="group in filtered" :key="group.tag" :title="group.tag">
-            <el-table :data="group.apis" border stripe size="small">
-              <el-table-column prop="method" label="Method" width="68">
-                <template #default="{ row }">
-                  <el-tag type="primary" size="small"> {{ row.method }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="path" label="Path">
-                <template #default="{ row }">
-                  <div style="font-size: 10px">{{ row.path }}</div>
-                </template>
-              </el-table-column>
-              <el-table-column label="Summary">
-                <template #default="scope">
-                  <el-link
-                    type="primary"
-                    @click="emit('select', scope.row.path, scope.row.method)"
-                    style="font-size: 12px"
-                  >
-                    {{ scope.row.item.summary || '查看详情' }}
-                  </el-link>
-                </template>
-              </el-table-column>
-            </el-table>
+            <ApiItem
+              class="item"
+              v-for="item in group.apis"
+              :key="item.path"
+              :item="item"
+              @click="emit('select', item.path, item.method)"
+            />
+            <!--            <el-table :data="group.apis" border stripe size="small">-->
+            <!--              <el-table-column prop="method" label="Method" width="68">-->
+            <!--                <template #default="{ row }">-->
+            <!--                  <el-tag type="primary" size="small"> {{ row.method }}</el-tag>-->
+            <!--                </template>-->
+            <!--              </el-table-column>-->
+            <!--              <el-table-column prop="path" label="Path">-->
+            <!--                <template #default="{ row }">-->
+            <!--                  <div style="font-size: 10px">{{ row.path }}</div>-->
+            <!--                </template>-->
+            <!--              </el-table-column>-->
+            <!--              <el-table-column label="Summary">-->
+            <!--                <template #default="scope">-->
+            <!--                  <el-link-->
+            <!--                    type="primary"-->
+            <!--                    @click="emit('select', scope.row.path, scope.row.method)"-->
+            <!--                    style="font-size: 12px"-->
+            <!--                  >-->
+            <!--                    {{ scope.row.item.summary || '查看详情' }}-->
+            <!--                  </el-link>-->
+            <!--                </template>-->
+            <!--              </el-table-column>-->
+            <!--            </el-table>-->
           </el-collapse-item>
         </el-collapse>
       </div>

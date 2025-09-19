@@ -585,3 +585,13 @@ export interface Tag {
   name: string
   description: string
 }
+
+export interface SwaggerConfig {
+  configUrl: string
+  oauth2RedirectUrl: string
+  urls: {
+    url: string
+    name: string
+  }[]
+  validatorUrl: string
+}
