@@ -3,10 +3,10 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-import ElementPlus from 'element-plus'
+// import ElementPlus from 'element-plus'
 
 import './assets/main.css'
-import 'element-plus/dist/index.css'
+// import 'element-plus/dist/index.css'
 
 function setRem() {
   const baseSize = 16
@@ -17,7 +17,7 @@ window.addEventListener('resize', setRem)
 setRem()
 
 const app = createApp(App)
-app.use(ElementPlus)
+// app.use(ElementPlus)
 
 app.use(createPinia())
 app.use(router)

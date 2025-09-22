@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import type { ApiGroup } from '@/types/swagger'
-import type { SwaggerDoc } from '@/api/data.type.ts'
+import type { PostClass, SwaggerDoc } from '@/api/data.type.ts'
 import { getApiDocs } from '@/api/swagger.ts'
 
 export function useSwagger() {
@@ -40,6 +40,7 @@ export function useSwagger() {
         })
       })
     })
+    console.log('groupByTags', Object.values(groups))
     return Object.values(groups)
   }
 
@@ -47,5 +48,50 @@ export function useSwagger() {
     return groupByTags()
   })
 
-  return { swaggerDoc, loading, error, fetchSwagger, groupByTags, groupData }
+  // 获取接口最前面的路径
+  const getApiPrefix = (path: string) => {
+    return path.split('/')[1]
+  }
+
+  type PathMap = Record<string, { method: string; path: string; item: PostClass }[]>
+  const pathMaps = computed(() => {
+    return Object.entries(swaggerDoc.value?.paths || []).reduce<PathMap>((pre, cur) => {
+      const [path, methods] = cur
+      // 接口前缀
+      const apiPrefix = getApiPrefix(path)
+      Object.entries(methods).forEach(([method, item]) => {
+        if (!Array.isArray(pre[apiPrefix])) pre[apiPrefix] = []
+        pre[apiPrefix].push({
+          method: method,
+          path,
+          item,
+        })
+      })
+      return pre
+    }, {})
+  })
+
+  const tagsGroupData = computed<TagGroup[]>(() => {
+    return (
+      swaggerDoc.value?.tags?.map((item) => {
+        // 接口前缀
+        const apiPrefix = `/${item.description}`
+        return {
+          name: item.name,
+          description: item.description,
+          apiPrefix,
+          groups: pathMaps.value[item.description] || [],
+        }
+      }) || []
+    )
+  })
+
+  return { swaggerDoc, loading, error, fetchSwagger, groupByTags, groupData, tagsGroupData }
+}
+
+export type TagGroup = {
+  name: string
+  description: string
+  apiPrefix: string
+  groups: { method: string; path: string; item: PostClass }[]
 }

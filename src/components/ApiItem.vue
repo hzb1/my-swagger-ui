@@ -1,10 +1,12 @@
 <script setup lang="ts" name="ApiItem">
 import type { ApiGroup } from '@/types/swagger.ts'
 import { computed } from 'vue'
+import type { PostClass } from '@/api/data.type.ts'
+import type { TagGroup } from '@/composables/useSwagger.ts'
 
 const props = withDefaults(
   defineProps<{
-    item: ApiGroup['apis'][number]
+    item: TagGroup['groups'][number]
   }>(),
   {},
 )
@@ -18,6 +20,7 @@ const lastPath = computed(() => {
 })
 
 const name = computed(() => {
+  // return props.item.item.description
   const {
     item: { summary, description },
   } = props.item
@@ -50,31 +53,31 @@ const name = computed(() => {
   }
 
   .method {
-    margin-right: 12px;
-    font-size: 0.55rem;
+    margin-right: 8px;
+    font-size: 14px;
     line-height: 1.25;
-    padding: 2px 4px;
+    padding: 2px 6px;
     border-radius: 6px;
-    &.GET {
+    &.get {
       color: rgb(21 128 61);
       background-color: rgb(21 128 61 / 20%);
     }
-    &.POST {
+    &.post {
       color: rgb(121, 187, 255);
       background-color: rgb(121 187 255 / 20%);
     }
-    &.PUT {
+    &.put {
       color: rgb(245 158 11);
       background-color: rgb(245 158 11 / 20%);
     }
-    &.DELETE {
+    &.delete {
       color: rgb(220 38 38);
       background-color: rgb(220 38 38 / 20%);
     }
   }
   .name {
     color: var(--el-text-color-primary);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     line-height: 24px;
   }
