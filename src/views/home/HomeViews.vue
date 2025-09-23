@@ -2,7 +2,7 @@
 import ApiList from '@/components/ApiList.vue'
 import ApiDetail from '@/components/ApiDetail.vue'
 import { type TagGroup, useSwagger } from '@/composables/useSwagger.ts'
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { useAppStore } from '@/stores/useAppStore.ts'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
@@ -17,6 +17,10 @@ const { serviceList, swaggerConfigLoading, currentServiceUrl } = storeToRefs(app
 type TItem = TagGroup['groups'][number]
 
 const { swaggerDoc, loading, error, fetchSwagger, groupData, tagsGroupData } = useSwagger()
+
+watchEffect(() => {
+  console.log('tagsGroupData', tagsGroupData.value)
+})
 
 const selected = ref<TItem | null>(null)
 
@@ -43,7 +47,11 @@ const onSelect = (item: TItem) => {
   <div class="home-view" v-loading="loading">
     <div class="home-container">
       <section class="sidebar">
-        <SideBar :groups="tagsGroupData" @select="onSelect" />
+        <SideBar
+          :groups="tagsGroupData"
+          @select="onSelect"
+          @service-change="onCurrentServiceUrlChange"
+        />
       </section>
       <section class="main">
         <Detail v-if="selected" :data="selected" />

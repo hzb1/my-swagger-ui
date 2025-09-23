@@ -57,21 +57,29 @@ export function useSwagger() {
   const pathMaps = computed(() => {
     return Object.entries(swaggerDoc.value?.paths || []).reduce<PathMap>((pre, cur) => {
       const [path, methods] = cur
-      // 接口前缀
-      const apiPrefix = getApiPrefix(path)
       Object.entries(methods).forEach(([method, item]) => {
-        if (!Array.isArray(pre[apiPrefix])) pre[apiPrefix] = []
-        pre[apiPrefix].push({
-          method: method,
-          path,
-          item,
+        const tags = item.tags?.length ? item.tags : ['default']
+        tags.forEach((tag) => {
+          if (!pre[tag]) pre[tag] = []
+          pre[tag].push({
+            method: method,
+            path,
+            item,
+          })
         })
+        // if (!Array.isArray(pre[apiPrefix])) pre[apiPrefix] = []
+        // pre[apiPrefix].push({
+        //   method: method,
+        //   path,
+        //   item,
+        // })
       })
       return pre
     }, {})
   })
 
   const tagsGroupData = computed<TagGroup[]>(() => {
+    console.log('pathMaps', pathMaps.value)
     return (
       swaggerDoc.value?.tags?.map((item) => {
         // 接口前缀
@@ -80,7 +88,7 @@ export function useSwagger() {
           name: item.name,
           description: item.description,
           apiPrefix,
-          groups: pathMaps.value[item.description] || [],
+          groups: pathMaps.value[item.name] || [],
         }
       }) || []
     )

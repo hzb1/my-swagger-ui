@@ -7,9 +7,18 @@ import { computed, ref } from 'vue'
 import ApiItem from '@/components/ApiItem.vue'
 import CollapseItem from '@/components/CollapseItem.vue'
 import type { TagGroup } from '@/composables/useSwagger.ts'
+import { useAppStore } from '@/stores/useAppStore.ts'
+import { storeToRefs } from 'pinia'
 
 const props = defineProps<{ groups: TagGroup[] }>()
-const emit = defineEmits<{ (e: 'select', item: TagGroup['groups'][number]): void }>()
+const emit = defineEmits<{
+  (e: 'select', item: TagGroup['groups'][number]): void
+  (e: 'serviceChange', url: string): void
+}>()
+
+const appStore = useAppStore()
+
+const { serviceList, swaggerConfigLoading, currentServiceUrl } = storeToRefs(appStore)
 
 const keyword = ref('')
 const filtered = computed(() =>
@@ -24,9 +33,22 @@ const filtered = computed(() =>
     }))
     .filter((g) => g.groups.length > 0),
 )
+
+// 切换服务时
+const onCurrentServiceUrlChange = async (e) => {
+  emit('serviceChange', e.target.value)
+}
 </script>
 <template>
   <div class="side-bar">
+    <div class="header" style="display: flex; flex-direction: column">
+      <select v-model="currentServiceUrl" @change="onCurrentServiceUrlChange">
+        <option v-for="item in serviceList" :key="item.url" :value="item.url">
+          {{ item.name }}
+        </option>
+      </select>
+      <input v-model="keyword" placeholder="搜索接口" clearable class="input" />
+    </div>
     <div class="main">
       <CollapseItem
         v-for="group in filtered"
@@ -48,5 +70,18 @@ const filtered = computed(() =>
 
 <style scoped>
 .side-bar {
+  display: flex;
+  flex-direction: column;
+  .header {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    gap: 8px;
+  }
+  .main {
+    flex: 1;
+    overflow: auto;
+  }
 }
 </style>
