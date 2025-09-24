@@ -1,6 +1,7 @@
 <script setup lang="ts" name="Detail">
 import type { TagGroup } from '@/composables/useSwagger.ts'
 import { computed } from 'vue'
+import HighlightCode from '@/components/HighlightCode.vue'
 
 type TItem = TagGroup['groups'][number]
 const props = withDefaults(
@@ -17,6 +18,26 @@ const nameText = computed(() => props.data.item.summary || props.data.item.descr
 
 // 请求方法
 const methodText = computed(() => props.data?.method.toUpperCase())
+
+const requestTypes = computed(() => {
+  const params = `
+/** 司机管理分页返回数据 */
+export interface Parameters {
+${props.data?.item?.parameters
+  ?.map((p) => {
+    const desc = p.description ? `/** ${p.description} */\n` : ''
+    return `${desc}${p.name}${p.required ? '' : '?'}: ${p.schema?.type || 'any'}`
+  })
+  .join(';\n')}
+}
+    `
+  return params
+})
+
+// 提取查询参数
+const queryParams = computed(() => {
+  return props.data?.item?.parameters?.filter((p) => p.in === 'query') || []
+})
 </script>
 <template>
   <div class="detail">
@@ -25,6 +46,13 @@ const methodText = computed(() => props.data?.method.toUpperCase())
       <div>
         <div class="method">{{ methodText }}</div>
         <div class="path" style="margin-left: 12px">{{ data.path }}</div>
+      </div>
+    </div>
+
+    <div class="request-types">
+      <div class="title">请求参数</div>
+      <div class="types">
+        <HighlightCode :content="requestTypes" v-if="queryParams" />
       </div>
     </div>
   </div>

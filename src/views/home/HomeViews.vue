@@ -36,6 +36,7 @@ const onSelect = (item: TItem) => {
   selected.value = item
   router.push({
     query: {
+      ...route.query,
       path: item.path,
       method: item.method,
     },
@@ -44,7 +45,7 @@ const onSelect = (item: TItem) => {
 </script>
 
 <template>
-  <div class="home-view" v-loading="loading">
+  <div class="home-view">
     <div class="home-container">
       <section class="sidebar">
         <SideBar

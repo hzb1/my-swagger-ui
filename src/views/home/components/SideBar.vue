@@ -9,7 +9,9 @@ import CollapseItem from '@/components/CollapseItem.vue'
 import type { TagGroup } from '@/composables/useSwagger.ts'
 import { useAppStore } from '@/stores/useAppStore.ts'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const props = defineProps<{ groups: TagGroup[] }>()
 const emit = defineEmits<{
   (e: 'select', item: TagGroup['groups'][number]): void
@@ -21,22 +23,34 @@ const appStore = useAppStore()
 const { serviceList, swaggerConfigLoading, currentServiceUrl } = storeToRefs(appStore)
 
 const keyword = ref('')
-const filtered = computed(() =>
-  props.groups
+const filtered = computed(() => {
+  const v = keyword.value.toLowerCase().trim()
+  if (!v) {
+    return props.groups
+  }
+
+  return props.groups
     .map((g) => ({
       ...g,
       groups: g.groups.filter(
         (a) =>
-          a.path.toLowerCase().includes(keyword.value.toLowerCase()) ||
-          a.item.summary?.toLowerCase().includes(keyword.value.toLowerCase()),
+          a.path.toLowerCase().includes(v) ||
+          a.item.summary?.toLowerCase().includes(v) ||
+          a.item.description?.toLowerCase().includes(v),
       ),
     }))
-    .filter((g) => g.groups.length > 0),
-)
+    .filter((g) => g.groups.length > 0)
+})
 
 // 切换服务时
 const onCurrentServiceUrlChange = async (e) => {
-  emit('serviceChange', e.target.value)
+  const v = e.target.value
+  emit('serviceChange', v)
+  await router.push({
+    query: {
+      service: v,
+    },
+  })
 }
 </script>
 <template>

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { useSwaggerConfig } from '@/composables/useSwaggerConfig.ts'
 import { computed, ref } from 'vue'
 import { getSwaggerConfig } from '@/api/swagger.ts'
+import { useRoute } from 'vue-router'
 
 type SwaggerConfig = {
   urls: {
@@ -11,8 +12,11 @@ type SwaggerConfig = {
 }
 
 export const useAppStore = defineStore('appStore', () => {
-  // 当前的服务
-  const currentServiceUrl = ref<string>()
+  const route = useRoute()
+  // 从路由参数中获取当前服务
+  const currentServiceUrl = computed(() => {
+    return route.query.service as string | undefined
+  })
 
   const swaggerConfig = ref<SwaggerConfig>()
 
