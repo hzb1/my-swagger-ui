@@ -1,3 +1,5 @@
+import { type OpenAPIV3 } from 'openapi-types'
+
 // 仅保留常用字段，可根据需要再扩展
 export type SwaggerPathMethod = PostClass
 
@@ -10,19 +12,23 @@ export interface SwaggerSchema {
   $ref?: string
 }
 
-export interface SwaggerDoc {
-  openapi: string
-  info: Info
-  servers: Server[]
-  tags: Tag[]
-  paths: Paths
-  components: Components
-}
+export type SwaggerDoc = OpenAPIV3.Document
 
-export interface Components {
-  schemas: Schemas
-  securitySchemes: SecuritySchemes
-}
+// SwaggerDoc
+
+// export interface SwaggerDoc {
+//   openapi: string
+//   info: Info
+//   servers: Server[]
+//   tags: Tag[]
+//   paths: Paths
+//   components: Components
+// }
+
+// export interface Components {
+//   schemas: Schemas
+//   securitySchemes: SecuritySchemes
+// }
 
 export interface Schemas {
   R: R

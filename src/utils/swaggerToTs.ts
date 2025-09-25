@@ -1,4 +1,7 @@
-import type { Schemas, SwaggerSchema } from '@/api/data.type.ts'
+import type { SwaggerSchema } from '@/api/data.type.ts'
+import { OpenAPIV3 } from 'openapi-types'
+
+type Schemas = NonNullable<OpenAPIV3.ComponentsObject['schemas']>
 
 export function schemaToTs(
   schema: SwaggerSchema | undefined,
@@ -11,9 +14,10 @@ export function schemaToTs(
 
   function parse(node: SwaggerSchema | undefined): string {
     if (!node) return 'any'
+    if (!definitions) return 'any'
 
     if (node.$ref) {
-      const key = node.$ref.replace(/^#\/(definitions|components\/schemas)\//, '')
+      const key: string = node.$ref.replace(/^#\/(definitions|components\/schemas)\//, '')
       if (!definitions[key]) return 'any'
       if (visited.has(key)) return key
       visited.add(key)

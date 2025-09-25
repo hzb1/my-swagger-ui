@@ -9,6 +9,9 @@ import { useRoute, useRouter } from 'vue-router'
 import SideBar from '@/views/home/components/SideBar.vue'
 import Detail from '@/views/home/components/Detail.vue'
 import Response from '@/views/home/components/Response.vue'
+import { getApiTypes } from '@/utils/openapiTypeGen.ts'
+import { useOpenapiTypes } from '@/composables/useOpenapiTypes.ts'
+// import '@/utils/swagger-to-ts.ts'
 
 const appStore = useAppStore()
 
@@ -18,11 +21,16 @@ type TItem = TagGroup['groups'][number]
 
 const { swaggerDoc, loading, error, fetchSwagger, groupData, tagsGroupData } = useSwagger()
 
+const selected = ref<TItem | null>(null)
+
 watchEffect(() => {
-  console.log('tagsGroupData', tagsGroupData.value)
+  // console.log('tagsGroupData', tagsGroupData.value)
+  console.log('selected', selected.value)
 })
 
-const selected = ref<TItem | null>(null)
+// 获取 /user/{id} 的 GET 方法类型
+const { queryType, pathType, headerType, cookieType, bodyType, responseType } =
+  useOpenapiTypes(selected)
 
 const router = useRouter()
 const route = useRoute()
@@ -46,6 +54,14 @@ const onSelect = (item: TItem) => {
 
 <template>
   <div class="home-view">
+    <!--    <pre>-->
+    <!--      Query: {{ queryType }}-->
+    <!--      Path: {{ pathType }}-->
+    <!--      Header: {{ headerType }}-->
+    <!--      Cookie: {{ cookieType }}-->
+    <!--      Body: {{ bodyType }}-->
+    <!--      Response: {{ responseType }}-->
+    <!--    </pre>-->
     <div class="home-container">
       <section class="sidebar">
         <SideBar
