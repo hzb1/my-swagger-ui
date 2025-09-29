@@ -2,11 +2,14 @@
 import type { TagGroup } from '@/composables/useSwagger.ts'
 import { computed } from 'vue'
 import HighlightCode from '@/components/HighlightCode.vue'
+import { getSchemaByRef, schemaToTsCode } from '@/utils/swaggerToTs.ts'
+import type { SwaggerDoc } from '@/api/data.type.ts'
 
 type TItem = TagGroup['groups'][number]
 const props = withDefaults(
   defineProps<{
     data: TItem
+    swaggerDoc: SwaggerDoc
   }>(),
   {},
 )
@@ -38,6 +41,23 @@ ${props.data?.item?.parameters
 const queryParams = computed(() => {
   return props.data?.item?.parameters?.filter((p) => p.in === 'query') || []
 })
+
+// 提取body参数
+// const bodyRef = computed(() => {
+//   return props.data?.item?.requestBody?.content?.['application/json']?.schema?.$ref
+// })
+
+// 提取body参数
+// const bodyParams = computed(() => {
+//   if (!bodyRef.value) return undefined
+//   return getSchemaByRef(bodyRef.value, props.swaggerDoc)
+// })
+
+// 把body参数转成ts代码
+const bodyParamsTsCode = computed(() => {
+  const schema = props.data?.item?.requestBody?.content?.['application/json']?.schema
+  return schemaToTsCode(schema, props.swaggerDoc)
+})
 </script>
 <template>
   <div class="detail">
@@ -50,9 +70,16 @@ const queryParams = computed(() => {
     </div>
 
     <div class="request-types">
-      <div class="title">请求参数</div>
+      <div class="title">QueryParams</div>
       <div class="types">
         <HighlightCode :content="requestTypes" v-if="queryParams" />
+      </div>
+    </div>
+
+    <div class="request-types">
+      <div class="title">Body</div>
+      <div class="types">
+        <HighlightCode :content="bodyParamsTsCode" v-if="bodyParamsTsCode" />
       </div>
     </div>
   </div>
@@ -60,6 +87,7 @@ const queryParams = computed(() => {
 
 <style scoped>
 .detail {
+  padding: 0 12px 24px;
   .header {
   }
 }

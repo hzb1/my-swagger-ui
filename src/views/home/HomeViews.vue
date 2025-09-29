@@ -71,7 +71,7 @@ const onSelect = (item: TItem) => {
         />
       </section>
       <section class="main">
-        <Detail v-if="selected" :data="selected" />
+        <Detail v-if="selected" :data="selected" :swaggerDoc="swaggerDoc" />
       </section>
       <section class="response">
         <Response v-if="swaggerDoc && selected" :data="selected" :swaggerDoc="swaggerDoc" />
@@ -84,24 +84,33 @@ const onSelect = (item: TItem) => {
 .home-view {
   .home-container {
     height: 100vh;
-    overflow: hidden;
     display: flex;
     justify-content: space-between;
   }
   .sidebar {
-    height: 100%;
+    height: 100vh;
     /* prettier-ignore*/
     width: 300px;
     overflow: auto;
     flex-shrink: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
   }
   .response {
-    height: 100%;
+    height: calc(100vh - 48px);
     flex-shrink: 0;
     width: 600px;
     overflow: auto;
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    bottom: 24px;
   }
   .main {
+    margin-left: 300px;
+    margin-right: 600px;
     flex: 1;
   }
 }

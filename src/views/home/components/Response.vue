@@ -64,9 +64,6 @@ const activeTab = ref(tabs.value[0]?.key || '')
 .response {
   padding: 24px;
   display: flex;
-  height: 100%;
-  width: 100%;
-  overflow: auto;
   .tabs-card {
     flex: 1;
     background-color: wheat;
