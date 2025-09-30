@@ -1,20 +1,22 @@
 <script setup lang="ts" name="Detail">
-import type { TagGroup } from '@/composables/useSwagger.ts'
 import { computed } from 'vue'
 import HighlightCode from '@/components/HighlightCode.vue'
-import { getSchemaByRef, schemaToTsCode } from '@/utils/swaggerToTs.ts'
-import type { SwaggerDoc } from '@/api/data.type.ts'
+import { schemaToTsCode } from '@/utils/swaggerToTs.ts'
+import { type TagGroup, useAppStore } from '@/stores/useAppStore.ts'
 
 type TItem = TagGroup['groups'][number]
 const props = withDefaults(
   defineProps<{
     data: TItem
-    swaggerDoc: SwaggerDoc
+    // swaggerDoc: SwaggerDoc
   }>(),
   {},
 )
 // const emit = defineEmits<{}>();
 console.log('data', props.data)
+
+const appStore = useAppStore()
+const swaggerDoc = computed(() => appStore.swaggerDoc)
 
 // 接口名称
 const nameText = computed(() => props.data.item.summary || props.data.item.description)
@@ -23,6 +25,7 @@ const nameText = computed(() => props.data.item.summary || props.data.item.descr
 const methodText = computed(() => props.data?.method.toUpperCase())
 
 const requestTypes = computed(() => {
+  if (!props.data?.item?.parameters) return '// 无参数'
   const params = `
 /** 司机管理分页返回数据 */
 export interface Parameters {
@@ -56,7 +59,7 @@ const queryParams = computed(() => {
 // 把body参数转成ts代码
 const bodyParamsTsCode = computed(() => {
   const schema = props.data?.item?.requestBody?.content?.['application/json']?.schema
-  return schemaToTsCode(schema, props.swaggerDoc)
+  return schemaToTsCode(schema, swaggerDoc.value!)
 })
 </script>
 <template>
@@ -72,7 +75,7 @@ const bodyParamsTsCode = computed(() => {
     <div class="request-types">
       <div class="title">QueryParams</div>
       <div class="types">
-        <HighlightCode :content="requestTypes" v-if="queryParams" />
+        <HighlightCode :content="requestTypes" />
       </div>
     </div>
 
@@ -87,7 +90,7 @@ const bodyParamsTsCode = computed(() => {
 
 <style scoped>
 .detail {
-  padding: 0 12px 24px;
+  padding: 24px;
   .header {
   }
 }

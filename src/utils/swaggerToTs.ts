@@ -1,7 +1,7 @@
 import type { SwaggerDoc, SwaggerSchema } from '@/api/data.type.ts'
 import { OpenAPIV3 } from 'openapi-types'
 
-type Schemas = NonNullable<OpenAPIV3.ComponentsObject['schemas']>
+type Schemas = OpenAPIV3.SchemaObject
 
 export function schemaToTs(
   schema: SwaggerSchema | undefined,
@@ -77,7 +77,7 @@ export function schemaToTs(
 }
 
 // 通过$ref获取api-docs的components的schema
-export function getSchemaByRef(ref: string, docs: SwaggerDoc): SwaggerSchema | undefined {
+export function getSchemaByRef(ref: string, docs: SwaggerDoc) {
   if (!ref) return undefined
   const key: string = ref.replace(/^#\/(definitions|components\/schemas)\//, '')
   if (!docs.components?.schemas) return undefined

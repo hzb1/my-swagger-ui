@@ -1,11 +1,11 @@
 <script setup lang="ts" name="Response">
-import type { TagGroup } from '@/composables/useSwagger.ts'
 import { computed, ref } from 'vue'
 import { schemaToTs } from '@/utils/swaggerToTs.ts'
 import type { SwaggerDoc } from '@/api/data.type.ts'
 import HighlightCode from '@/components/HighlightCode.vue'
+import type { TagGroupItem } from '@/stores/useAppStore.ts'
 
-type TItem = TagGroup['groups'][number]
+type TItem = TagGroupItem
 const props = withDefaults(
   defineProps<{
     data: TItem
@@ -21,7 +21,7 @@ const tabs = computed(() => {
     responses.map(([key, item]) => {
       const schema = item?.content?.['*/*']?.schema
       const content = schema
-        ? schemaToTs(schema, props.swaggerDoc.components.schemas, 'ResponseData')
+        ? schemaToTs(schema, props.swaggerDoc.components?.schemas!, 'ResponseData')
         : 'any'
       return {
         name: key,
@@ -60,9 +60,9 @@ const activeTab = ref(tabs.value[0]?.key || '')
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="less">
 .response {
-  padding: 24px;
+  // padding: 24px;
   display: flex;
   .tabs-card {
     flex: 1;

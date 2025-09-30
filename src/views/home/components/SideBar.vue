@@ -1,35 +1,33 @@
 <script setup lang="ts" name="SideBar">
 // const props = withDefaults(defineProps<{}>(), {});
 // const emit = defineEmits<{}>();
-
-import type { ApiGroup } from '@/types/swagger.ts'
 import { computed, ref } from 'vue'
 import ApiItem from '@/components/ApiItem.vue'
 import CollapseItem from '@/components/CollapseItem.vue'
-import type { TagGroup } from '@/composables/useSwagger.ts'
-import { useAppStore } from '@/stores/useAppStore.ts'
+import { type TagGroup, type TagGroupItem, useAppStore } from '@/stores/useAppStore.ts'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
-const props = defineProps<{ groups: TagGroup[] }>()
-const emit = defineEmits<{
-  (e: 'select', item: TagGroup['groups'][number]): void
-  (e: 'serviceChange', url: string): void
-}>()
+const route = useRoute()
+// const props = defineProps<{ groups: TagGroup[] }>()
+// const emit = defineEmits<{
+// (e: 'select', item: TagGroup['groups'][number]): void
+// (e: 'serviceChange', url: string): void
+// }>()
 
 const appStore = useAppStore()
 
-const { serviceList, swaggerConfigLoading, currentServiceUrl } = storeToRefs(appStore)
+const { serviceList, currentServiceUrl, tagsGroupData, selected } = storeToRefs(appStore)
 
 const keyword = ref('')
 const filtered = computed(() => {
   const v = keyword.value.toLowerCase().trim()
   if (!v) {
-    return props.groups
+    return tagsGroupData.value
   }
 
-  return props.groups
+  return tagsGroupData.value
     .map((g) => ({
       ...g,
       groups: g.groups.filter(
@@ -43,18 +41,30 @@ const filtered = computed(() => {
 })
 
 // 切换服务时
-const onCurrentServiceUrlChange = async (e) => {
-  const v = e.target.value
-  emit('serviceChange', v)
+const onCurrentServiceUrlChange = async (e: Event) => {
+  const v = (e.target as HTMLSelectElement).value
   await router.push({
     query: {
       service: v,
+    },
+  })
+  await appStore.loadDocData()
+}
+
+const onSelect = (item: TagGroupItem) => {
+  selected.value = item
+  router.push({
+    query: {
+      ...route.query,
+      path: item.path,
+      method: item.method,
     },
   })
 }
 </script>
 <template>
   <div class="side-bar">
+    <!--    {{ tagsGroupData }}-->
     <div class="header" style="display: flex; flex-direction: column">
       <select v-model="currentServiceUrl" @change="onCurrentServiceUrlChange">
         <option v-for="item in serviceList" :key="item.url" :value="item.url">
@@ -75,7 +85,7 @@ const onCurrentServiceUrlChange = async (e) => {
           v-for="item in group.groups"
           :key="item.path"
           :item="item"
-          @click="() => emit('select', item)"
+          @click="() => onSelect(item)"
         />
       </CollapseItem>
     </div>
@@ -86,6 +96,8 @@ const onCurrentServiceUrlChange = async (e) => {
 .side-bar {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   .header {
     flex-shrink: 0;
     display: flex;
@@ -94,6 +106,8 @@ const onCurrentServiceUrlChange = async (e) => {
     gap: 8px;
   }
   .main {
+    padding: 12px;
+    box-sizing: border-box;
     flex: 1;
     overflow: auto;
   }

@@ -1,0 +1,15 @@
+{
+  "configUrl": "/v3/api-docs/swagger-config",
+  "oauth2RedirectUrl": "http://172.16.14.48:9999/swagger-ui/oauth2-redirect.html",
+  "urls": [
+    {
+      "url": "/admin/v3/api-docs",
+      "name": "pigx-upms-biz"
+    },
+    {
+      "url": "/transport/v3/api-docs",
+      "name": "transport-biz"
+    }
+  ],
+  "validatorUrl": ""
+}

@@ -18,6 +18,7 @@ export default defineConfig({
       '/api-proxy': {
         // target: 'http://172.16.14.27:9999/',
         target: 'http://172.16.14.48:9999/',
+        // target: 'https://tms-sit.glsytzjt.com/api',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api-proxy/, ''),

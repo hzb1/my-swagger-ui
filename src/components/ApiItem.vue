@@ -1,12 +1,10 @@
 <script setup lang="ts" name="ApiItem">
-import type { ApiGroup } from '@/types/swagger.ts'
 import { computed } from 'vue'
-import type { PostClass } from '@/api/data.type.ts'
-import type { TagGroup } from '@/composables/useSwagger.ts'
+import type { TagGroupItem } from '@/stores/useAppStore.ts'
 
 const props = withDefaults(
   defineProps<{
-    item: TagGroup['groups'][number]
+    item: TagGroupItem
   }>(),
   {},
 )
@@ -38,7 +36,7 @@ const name = computed(() => {
 .api-item {
   display: flex;
   align-items: center;
-  padding: 6px 12px 6px 28px;
+  padding: 6px 12px 6px 18px;
   color: var(--el-color-primary);
   font-weight: 600;
   border-radius: 12px;

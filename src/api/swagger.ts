@@ -7,9 +7,7 @@ const swaggerConfigUrl = '/api-proxy/v3/api-docs/swagger-config'
 
 export async function mockApi() {
   return new Promise<SwaggerDoc>((resolve, reject) => {
-    setTimeout(() => {
-      resolve(data)
-    }, 1000)
+    resolve(data)
   })
 }
 
@@ -23,6 +21,7 @@ export async function mockSwaggerConfigApi() {
 
 export async function getApiDocs() {
   // 开发阶段可改为 `${vite.config.ts}` 里配置的 /api-proxy
+  // return mockApi()
   try {
     const { getCurrentServiceUrl } = useAppStore()
     const currentServiceUrl = await getCurrentServiceUrl()
@@ -35,6 +34,7 @@ export async function getApiDocs() {
 }
 
 export async function getSwaggerConfig() {
+  // return mockSwaggerConfigApi()
   try {
     const res = await fetch(swaggerConfigUrl)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)

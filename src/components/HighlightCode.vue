@@ -43,6 +43,7 @@ function copyText() {
   border-radius: 12px;
   overflow-x: auto;
   color: #999;
+  font-size: 12px;
   .copy-btn {
     position: absolute;
     top: 0;
