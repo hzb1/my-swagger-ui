@@ -21,7 +21,7 @@ const props = withDefaults(
 
 <style scoped>
 .collapse-item {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   .title {
     font-size: 14px;
     font-weight: 600;

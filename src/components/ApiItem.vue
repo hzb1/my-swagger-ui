@@ -5,6 +5,7 @@ import type { TagGroupItem } from '@/stores/useAppStore.ts'
 const props = withDefaults(
   defineProps<{
     item: TagGroupItem
+    active: boolean
   }>(),
   {},
 )
@@ -26,7 +27,7 @@ const name = computed(() => {
 })
 </script>
 <template>
-  <a class="api-item">
+  <a class="api-item" :class="{ active: active }">
     <span class="method" :class="[item.method]">{{ item.method }}</span>
     <span class="name">{{ name }}</span>
   </a>
@@ -45,9 +46,6 @@ const name = computed(() => {
 
   &:hover {
     background-color: rgb(79 82 87 / 5%);
-  }
-  &.active {
-    background-color: rgb(160, 207, 255);
   }
 
   .method {
@@ -75,9 +73,16 @@ const name = computed(() => {
   }
   .name {
     color: var(--el-text-color-primary);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     line-height: 24px;
+  }
+
+  &.active {
+    background-color: rgb(0 96 255 / 0.1);
+    .name {
+      font-weight: 600;
+    }
   }
 }
 </style>

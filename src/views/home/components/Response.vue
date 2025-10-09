@@ -4,6 +4,8 @@ import { schemaToTs } from '@/utils/swaggerToTs.ts'
 import type { SwaggerDoc } from '@/api/data.type.ts'
 import HighlightCode from '@/components/HighlightCode.vue'
 import type { TagGroupItem } from '@/stores/useAppStore.ts'
+import CopyIcon from '@/components/CopyIcon.vue'
+import copyToClipboard from '@/utils/copyToClipboard/copyToClipboard.ts'
 
 type TItem = TagGroupItem
 const props = withDefaults(
@@ -33,23 +35,26 @@ const tabs = computed(() => {
 })
 
 const activeTab = ref(tabs.value[0]?.key || '')
+
+const onCopy = () => {
+  copyToClipboard(tabs.value.find((tab) => tab.key === activeTab.value)?.content || '')
+}
 </script>
 <template>
   <div class="response">
     <div class="tabs-card">
-      <div class="tabs">
-        <div class="tab-head">
-          <div
-            class="tab"
-            v-for="tab in tabs"
-            :key="tab.key"
-            :class="{
-              active: activeTab === tab.key,
-            }"
-          >
-            {{ tab.name }}
-          </div>
+      <div class="tab-head">
+        <div
+          class="tab"
+          v-for="tab in tabs"
+          :key="tab.key"
+          :class="{
+            active: activeTab === tab.key,
+          }"
+        >
+          {{ tab.name }}
         </div>
+        <CopyIcon style="margin-left: auto; margin-right: 15px" @click="onCopy" />
       </div>
       <div class="tab-content">
         <div v-for="tab in tabs" :key="tab.key">
@@ -62,22 +67,42 @@ const activeTab = ref(tabs.value[0]?.key || '')
 
 <style scoped lang="less">
 .response {
-  // padding: 24px;
-  display: flex;
+  //height: 100%;
   .tabs-card {
-    flex: 1;
-    background-color: wheat;
+    max-height: 100%;
+    background-color: #f2f5fa;
+    border: 1px solid rgb(10 13 17 / 0.1);
+    padding: 0 2px 2px;
+    border-radius: 12px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
     .tab-head {
       display: flex;
+      height: 34px;
+      align-items: center;
+      position: sticky;
+      z-index: 100;
+      top: 0;
+      background-color: #f2f5fa;
+      flex-shrink: 0;
       .tab {
-        flex: 1;
         text-align: center;
-        padding: 12px 0;
+        padding: 0 12px;
         cursor: pointer;
         &.active {
           font-weight: bold;
+          color: var(--color-primary);
         }
       }
+    }
+    .tab-content {
+      min-height: 48px;
+      border-radius: 12px;
+      //width: calc(100% - var(--scrollbar-width));
+      overflow: auto;
+      position: relative;
+      //overflow: overlay;
     }
   }
 }

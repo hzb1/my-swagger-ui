@@ -42,6 +42,7 @@ export const useAppStore = defineStore('appStore', () => {
           if (!currentServiceUrl.value && res?.urls?.length) {
             currentServiceUrl.value = res.urls[0]?.url
           }
+          if (!swaggerDoc.value) loadDocData()
           resolve()
         })
         .catch((e) => {
@@ -72,8 +73,9 @@ export const useAppStore = defineStore('appStore', () => {
       const res = await getApiDocs()
       // const json = await mockApi()
       console.log('swaggerDoc', res)
-      swaggerDoc.value = res
+      swaggerDoc.value = res!
       // localStorage.setItem('swagger_last_url', url)
+      setDefaultSelected()
     } catch (e: any) {
       error.value = e.message
     } finally {
@@ -102,8 +104,8 @@ export const useAppStore = defineStore('appStore', () => {
     const groups: Record<string, ApiGroup> = {}
     Object.entries(swaggerDoc.value.paths).forEach(([path, methods]) => {
       Object.entries(methods).forEach(([method, item]) => {
-        const tags = item.tags?.length ? item.tags : ['default']
-        tags.forEach((tag) => {
+        const tags = item?.tags?.length ? item.tags : ['default']
+        tags.forEach((tag: string) => {
           if (!groups[tag]) groups[tag] = { tag, apis: [] }
           groups[tag].apis.push({ method: method.toUpperCase(), path, item })
         })
@@ -161,13 +163,22 @@ export const useAppStore = defineStore('appStore', () => {
 
   // 设置默认选中的接口
   function setDefaultSelected() {
-    // const { path, method } = route.query
-    // const item = pathMaps.value[item.name]?.find((i) => i.method === method && i.path === path)
-    // selected.value = {
-    //   method: method as string,
-    //   path: path as string,
-    //   item: item?.item || ({} as OpenAPIV3.OperationObject),
-    // }
+    const { path, method } = route.query
+    if (!path || !method) return
+    let findItem: OpenAPIV3.OperationObject | null = null
+    tagsGroupData.value.forEach((d) => {
+      d.groups.forEach((i) => {
+        if (i.method === method && i.path === path) {
+          findItem = i.item
+        }
+      })
+    })
+    if (!findItem) return
+    selected.value = {
+      method: method as string,
+      path: path as string,
+      item: findItem!,
+    }
   }
 
   return {

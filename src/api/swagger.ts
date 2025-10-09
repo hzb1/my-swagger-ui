@@ -5,41 +5,32 @@ import { useAppStore } from '@/stores/useAppStore.ts'
 // export const apiDocsUrl = '/api-proxy/transport/v3/api-docs'
 const swaggerConfigUrl = '/api-proxy/v3/api-docs/swagger-config'
 
-export async function mockApi() {
-  return new Promise<SwaggerDoc>((resolve, reject) => {
-    resolve(data)
-  })
+const isMock = Boolean(import.meta.env.VITE_MOCK)
+
+export async function mockApi(url: string) {
+  const a = url.split('/').filter(Boolean)
+  const s = a[0]
+  return fetch(`/data/${s}.json`).then((res) => res.json() as Promise<SwaggerDoc>)
 }
 
 export async function mockSwaggerConfigApi() {
-  return new Promise<SwaggerConfig>((resolve, reject) => {
-    setTimeout(() => {
-      resolve(swaggerConfig)
-    }, 1000)
-  })
+  return fetch('/data/swagger-config.json').then((res) => res.json() as Promise<SwaggerConfig>)
 }
 
 export async function getApiDocs() {
-  // 开发阶段可改为 `${vite.config.ts}` 里配置的 /api-proxy
-  // return mockApi()
-  try {
-    const { getCurrentServiceUrl } = useAppStore()
-    const currentServiceUrl = await getCurrentServiceUrl()
-    const res = await fetch(`/api-proxy${currentServiceUrl}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.json()
-  } catch (e) {
-    return mockApi()
-  }
+  const { getCurrentServiceUrl } = useAppStore()
+  const currentServiceUrl = await getCurrentServiceUrl()
+  if (isMock) return mockApi(currentServiceUrl!)
+  console.warn('currentServiceUrl', currentServiceUrl)
+  const res = await fetch(`/api-proxy${currentServiceUrl}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as SwaggerDoc
 }
 
 export async function getSwaggerConfig() {
-  // return mockSwaggerConfigApi()
-  try {
-    const res = await fetch(swaggerConfigUrl)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return (await res.json()) as { urls: { url: string; name: string }[] }
-  } catch (e) {
-    return mockSwaggerConfigApi()
-  }
+  if (isMock) return mockSwaggerConfigApi()
+
+  const res = await fetch(swaggerConfigUrl)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return (await res.json()) as { urls: { url: string; name: string }[] }
 }

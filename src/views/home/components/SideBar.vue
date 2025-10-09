@@ -41,8 +41,7 @@ const filtered = computed(() => {
 })
 
 // 切换服务时
-const onCurrentServiceUrlChange = async (e: Event) => {
-  const v = (e.target as HTMLSelectElement).value
+const onCurrentServiceUrlChange = async (v: string) => {
   await router.push({
     query: {
       service: v,
@@ -66,12 +65,12 @@ const onSelect = (item: TagGroupItem) => {
   <div class="side-bar">
     <!--    {{ tagsGroupData }}-->
     <div class="header" style="display: flex; flex-direction: column">
-      <select v-model="currentServiceUrl" @change="onCurrentServiceUrlChange">
-        <option v-for="item in serviceList" :key="item.url" :value="item.url">
+      <el-select v-model="currentServiceUrl" @change="onCurrentServiceUrlChange">
+        <el-option v-for="item in serviceList" :key="item.url" :value="item.url" :label="item.name">
           {{ item.name }}
-        </option>
-      </select>
-      <input v-model="keyword" placeholder="搜索接口" clearable class="input" />
+        </el-option>
+      </el-select>
+      <el-input v-model="keyword" placeholder="搜索接口" clearable class="input" />
     </div>
     <div class="main">
       <CollapseItem
@@ -85,6 +84,7 @@ const onSelect = (item: TagGroupItem) => {
           v-for="item in group.groups"
           :key="item.path"
           :item="item"
+          :active="selected?.path === item.path && selected?.method === item.method"
           @click="() => onSelect(item)"
         />
       </CollapseItem>
@@ -110,6 +110,12 @@ const onSelect = (item: TagGroupItem) => {
     box-sizing: border-box;
     flex: 1;
     overflow: auto;
+    .item {
+      margin-bottom: 2px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
   }
 }
 </style>

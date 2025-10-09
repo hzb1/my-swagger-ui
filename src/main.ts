@@ -7,6 +7,7 @@ import router from './router'
 
 import './assets/main.css'
 // import 'element-plus/dist/index.css'
+import 'element-plus/es/components/message/style/css'
 
 function setRem() {
   const baseSize = 16

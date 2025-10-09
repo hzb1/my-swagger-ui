@@ -8,7 +8,7 @@ export function schemaToTs(
   definitions: Schemas,
   name = 'ResponseData',
 ): string {
-  if (!schema) return '// 无返回数据'
+  if (!schema) return '// 无参数'
 
   const visited = new Set<string>()
 
