@@ -1,5 +1,5 @@
 interface ImportMetaEnv {
-  readonly VITE_MOCK: boolean
+  readonly VITE_MOCK: 'true' | 'false'
   // 更多环境变量...
 }
 
