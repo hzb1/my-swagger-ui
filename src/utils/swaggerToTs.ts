@@ -28,6 +28,9 @@ export function schemaToTs(
       case 'string':
         return 'string'
       case 'integer':
+        // int64 类型的数字，在ts中表示为字符串
+        if (node.format === 'int64') return 'string'
+        return 'number'
       case 'number':
         return 'number'
       case 'boolean':

@@ -2,9 +2,8 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getApiDocs, getSwaggerConfig } from '@/api/swagger.ts'
 import { useRoute } from 'vue-router'
-import type { SwaggerDoc } from '@/api/data.type.ts'
+import type { SwaggerDoc, SwaggerPathMethod } from '@/api/data.type.ts'
 import type { ApiGroup } from '@/types/swagger.ts'
-import type { OpenAPIV3 } from 'openapi-types'
 
 type SwaggerConfig = {
   urls: {
@@ -70,7 +69,8 @@ export const useAppStore = defineStore('appStore', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await getApiDocs()
+      const currentServiceUrl = await getCurrentServiceUrl()
+      const res = await getApiDocs(currentServiceUrl!)
       // const json = await mockApi()
       console.log('swaggerDoc', res)
       swaggerDoc.value = res!
@@ -100,11 +100,20 @@ export const useAppStore = defineStore('appStore', () => {
   }
 
   function groupByTags(): ApiGroup[] {
-    if (!swaggerDoc.value) return []
+    if (!swaggerDoc.value?.paths) return []
     const groups: Record<string, ApiGroup> = {}
     Object.entries(swaggerDoc.value.paths).forEach(([path, methods]) => {
+      if (!methods) return
+
       Object.entries(methods).forEach(([method, item]) => {
-        const tags = item?.tags?.length ? item.tags : ['default']
+        if (typeof item === 'string') return
+
+        if (Array.isArray(item)) {
+          console.warn('Array item', item)
+          return
+        }
+
+        const tags = item.tags?.length ? item.tags : ['default']
         tags.forEach((tag: string) => {
           if (!groups[tag]) groups[tag] = { tag, apis: [] }
           groups[tag].apis.push({ method: method.toUpperCase(), path, item })
@@ -124,7 +133,7 @@ export const useAppStore = defineStore('appStore', () => {
     return path.split('/')[1]
   }
 
-  type PathMap = Record<string, { method: string; path: string; item: OpenAPIV3.OperationObject }[]>
+  type PathMap = Record<string, { method: string; path: string; item: SwaggerPathMethod }[]>
   const pathMaps = computed(() => {
     return Object.entries(swaggerDoc.value?.paths || []).reduce<PathMap>((pre, cur) => {
       const [path, methods] = cur
@@ -143,15 +152,32 @@ export const useAppStore = defineStore('appStore', () => {
     }, {})
   })
 
-  const tagsGroupData = computed<TagGroup[]>(() => {
-    console.log('pathMaps.value', pathMaps.value)
+  const tagsGroupData = computed<TagGroup[]>((): TagGroup[] => {
+    console.log('pathMaps.value', pathMaps.value, swaggerDoc.value)
+
+    // 判断v3.0版本
+    if (swaggerDoc.value?.openapi?.startsWith('3.0')) {
+      const arr = Object.entries(pathMaps.value).reduce<TagGroup[]>((pre, cur) => {
+        const [tag, items] = cur
+        pre.push({
+          name: tag,
+          description: tag,
+          apiPrefix: `/${tag}`,
+          groups: items || [],
+        })
+        return pre
+      }, [])
+      return arr
+    }
+
+    // v3.1版本
     return (
       swaggerDoc.value?.tags?.map((item) => {
         // 接口前缀
         const apiPrefix = `/${item.description}`
         return {
-          name: item.name,
-          description: item.description,
+          name: item.name!,
+          description: item.description!,
           apiPrefix,
           groups: pathMaps.value[item.name] || [],
         }
@@ -165,7 +191,7 @@ export const useAppStore = defineStore('appStore', () => {
   function setDefaultSelected() {
     const { path, method } = route.query
     if (!path || !method) return
-    let findItem: OpenAPIV3.OperationObject | null = null
+    let findItem: SwaggerPathMethod | null = null
     tagsGroupData.value.forEach((d) => {
       d.groups.forEach((i) => {
         if (i.method === method && i.path === path) {
@@ -200,7 +226,7 @@ export type TagGroup = {
   name: string
   description: string
   apiPrefix: string
-  groups: { method: string; path: string; item: OpenAPIV3.OperationObject }[]
+  groups: { method: string; path: string; item: SwaggerPathMethod }[]
 }
 
 export type TagGroupItem = TagGroup['groups'][number]

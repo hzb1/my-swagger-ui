@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import HighlightCode from '@/components/HighlightCode.vue'
 import { schemaToTsCode } from '@/utils/swaggerToTs.ts'
 import { type TagGroup, useAppStore } from '@/stores/useAppStore.ts'
+import Method from '@/components/Method.vue'
 
 type TItem = TagGroup['groups'][number]
 const props = withDefaults(
@@ -22,7 +23,7 @@ const swaggerDoc = computed(() => appStore.swaggerDoc)
 const nameText = computed(() => props.data.item.summary || props.data.item.description)
 
 // 请求方法
-const methodText = computed(() => props.data?.method.toUpperCase())
+const methodText = computed(() => props.data?.method)
 
 const requestTypes = computed(() => {
   if (!props.data?.item?.parameters) return '// 无参数'
@@ -66,9 +67,9 @@ const bodyParamsTsCode = computed(() => {
   <div class="detail">
     <div class="header">
       <div class="name">{{ nameText }}</div>
-      <div>
-        <div class="method">{{ methodText }}</div>
-        <div class="path" style="margin-left: 12px">{{ data.path }}</div>
+      <div class="method-path">
+        <Method class="method" :name="methodText" />
+        <div class="path">{{ data.path }}</div>
       </div>
     </div>
 
@@ -92,6 +93,24 @@ const bodyParamsTsCode = computed(() => {
 .detail {
   padding: 24px;
   .header {
+    .name {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .method-path {
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 12px;
+      .method {
+        font-size: 16px;
+        padding: 4px 8px;
+      }
+      .path {
+        font-size: 16px;
+        margin-left: 6px;
+      }
+    }
   }
 }
 </style>

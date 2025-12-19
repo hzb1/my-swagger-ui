@@ -10,16 +10,18 @@ console.warn('VITE_MOCK', isMock, import.meta.env.VITE_MOCK)
 export async function mockApi(url: string) {
   const a = url.split('/').filter(Boolean)
   const s = a[0]
-  return fetch(`/data/${s}.json`).then((res) => res.json() as Promise<SwaggerDoc>)
+  // return fetch(`/data/${s}.json`).then((res) => res.json() as Promise<SwaggerDoc>)
+  return fetch(`/data/gm/${s}.json`).then((res) => res.json() as Promise<SwaggerDoc>)
 }
 
 export async function mockSwaggerConfigApi() {
-  return fetch('/data/swagger-config.json').then((res) => res.json() as Promise<SwaggerConfig>)
+  // return fetch('/data/swagger-config.json').then((res) => res.json() as Promise<SwaggerConfig>)
+  return fetch('/data/gm/swagger-config.json').then((res) => res.json() as Promise<SwaggerConfig>)
 }
 
-export async function getApiDocs() {
-  const { getCurrentServiceUrl } = useAppStore()
-  const currentServiceUrl = await getCurrentServiceUrl()
+export async function getApiDocs(currentServiceUrl: string) {
+  // const { getCurrentServiceUrl } = useAppStore()
+  // const currentServiceUrl = await getCurrentServiceUrl()
   if (isMock) return mockApi(currentServiceUrl!)
   console.warn('currentServiceUrl', currentServiceUrl)
   const res = await fetch(`/api-proxy${currentServiceUrl}`)

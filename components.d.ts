@@ -18,6 +18,7 @@ declare module 'vue' {
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     HighlightCode: typeof import('./src/components/HighlightCode.vue')['default']
+    Method: typeof import('./src/components/Method.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TabsCard: typeof import('./src/components/TabsCard.vue')['default']
