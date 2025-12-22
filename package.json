@@ -19,6 +19,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "element-plus": "^2.11.2",
     "highlight.js": "^11.11.1",
     "openapi-types": "^12.1.3",

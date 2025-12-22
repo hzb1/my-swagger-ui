@@ -36,8 +36,8 @@ export default defineConfig(({ command }) => {
           // luo
           // target: 'http://172.16.13.31:9999/',
           // huang
-          // target: 'http://172.16.13.82:9999/',
-          target: 'https://tms-sit.glsytzjt.com/api',
+          target: 'http://172.16.13.82:9999/',
+          // target: 'https://tms-sit.glsytzjt.com/api',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api-proxy/, ''),

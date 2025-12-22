@@ -8,6 +8,11 @@ const router = createRouter({
       name: 'HomeViews',
       component: () => import('@/views/home/HomeViews.vue'),
     },
+    {
+      path: '/explorer',
+      name: 'SwaggerExplorer',
+      component: () => import('@/views/SwaggerExplorer.vue'),
+    },
   ],
 })
 

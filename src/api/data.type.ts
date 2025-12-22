@@ -1,4 +1,4 @@
-import type { OpenAPIV3, OpenAPIV3_1 } from 'openapi-types'
+import type { OpenAPIV3, OpenAPIV3_1, OpenAPI } from 'openapi-types'
 
 // 仅保留常用字段，可根据需要再扩展
 export type SwaggerPathMethod = OpenAPIV3.OperationObject | OpenAPIV3_1.OperationObject
