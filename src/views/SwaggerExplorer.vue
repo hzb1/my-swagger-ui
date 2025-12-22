@@ -176,10 +176,10 @@ const tsCodeParts = computed(() => {
   const parser = new SwaggerToTS(document.value, genOptions)
   const res = parser.getStructuredTypes(selectedApi.value.path, selectedApi.value.method)
   return {
-    '依赖模型 (Models)': res.models,
     '查询参数 (Query)': res.queryParams,
     '请求体 (Body)': res.requestBody,
     '响应数据 (Response)': res.responseData,
+    '依赖模型 (Models)': res.models,
   }
 })
 

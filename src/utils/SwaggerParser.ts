@@ -1,6 +1,5 @@
 import type { OpenAPI } from 'openapi-types'
 
-/** 代码生成配置项 */
 export interface GeneratorOptions {
   indent?: number
   useInterface?: boolean
@@ -12,20 +11,16 @@ export interface GeneratorOptions {
   typeNameMapper?: (rawName: string) => string
 }
 
-/** * 完整的结构化生成结果
- * 现在包含了 models，用于存放接口中引用到的 UserVO、OrderVO 等定义
- */
 export interface GeneratedTypes {
   queryParams: string
   requestBody: string
   responseData: string
-  models: string // 新增：存放所有依赖的实体类定义
+  models: string
 }
 
 export class SwaggerToTS {
   private doc: OpenAPI.Document
   private options: Required<GeneratorOptions>
-  // 核心：类型收集器，存放映射后的类名及其原始 Schema
   private usedDefinitions = new Map<string, any>()
 
   constructor(doc: OpenAPI.Document, options: GeneratorOptions = {}) {
@@ -49,9 +44,6 @@ export class SwaggerToTS {
     return this.options.addExport ? 'export ' : ''
   }
 
-  /**
-   * 解析引用并自动注册到 usedDefinitions 收集器中
-   */
   private resolveRef(ref: string): { schema: any; name: string } {
     const parts = ref.replace('#/', '').split('/')
     const rawName = parts[parts.length - 1]
@@ -62,25 +54,23 @@ export class SwaggerToTS {
       current = current?.[part]
     }
 
-    // 如果未收集过，则加入收集器（支持递归收集）
-    if (!this.usedDefinitions.has(mappedName)) {
+    if (!this.usedDefinitions.has(mappedName) && current) {
       this.usedDefinitions.set(mappedName, current)
     }
 
     return { schema: current, name: mappedName }
   }
 
-  /**
-   * 递归解析 Schema
-   */
   private getTSType(schema: any, depth = 1): string {
     if (!schema) return 'any'
 
+    // 重点：处理引用
     if (schema.$ref) {
       const { name } = this.resolveRef(schema.$ref)
-      return name // 返回映射后的名字，并触发收集
+      return name
     }
 
+    // 处理数组
     if (schema.type === 'array') {
       const itemType = this.getTSType(schema.items, depth)
       if (this.options.arrayType === 'bracket') {
@@ -90,6 +80,7 @@ export class SwaggerToTS {
       return `Array<${itemType}>`
     }
 
+    // 处理对象
     if (schema.type === 'object' || schema.properties) {
       const props = Object.entries(schema.properties || {})
       if (props.length === 0) return 'Record<string, any>'
@@ -139,12 +130,8 @@ export class SwaggerToTS {
     return line
   }
 
-  /**
-   * 生成已收集的所有依赖模型的定义代码
-   */
   private generateModelsCode(): string {
     let code = ''
-    // 遍历收集到的依赖进行生成
     this.usedDefinitions.forEach((schema, name) => {
       const comment = schema.description ? `/** ${schema.description} */\n` : ''
       if (this.options.useInterface && (schema.type === 'object' || schema.properties)) {
@@ -157,31 +144,43 @@ export class SwaggerToTS {
   }
 
   /**
-   * 对外暴露的核心方法：获取分块的 TS 代码
+   * 【核心修复点】响应解析逻辑
    */
-  public getStructuredTypes(path: string, method: string): GeneratedTypes {
-    // 每次生成前清空上一次接口的收集记录
-    this.usedDefinitions.clear()
+  private generateResponse(op: any): string {
+    // 1. 获取 200 或 default 响应内容
+    const successRes = op.responses?.['200'] || op.responses?.['201'] || op.responses?.default
+    if (!successRes) return `${this.exp}type ResponseData = any${this.semi}`
 
+    // 2. 深度寻找 Schema (兼容 Swagger 2.0 和 OpenAPI 3.0)
+    // v3: content['application/json'].schema
+    // v2: schema
+    let schema = successRes.schema
+    if (!schema && successRes.content) {
+      // 优先匹配 json，如果没有则取第一个
+      const content = successRes.content['application/json'] || Object.values(successRes.content)[0]
+      schema = (content as any)?.schema
+    }
+
+    if (!schema) return `${this.exp}type ResponseData = any${this.semi}`
+
+    // 3. 进入递归解析
+    return `${this.exp}type ResponseData = ${this.getTSType(schema)}${this.semi}`
+  }
+
+  public getStructuredTypes(path: string, method: string): GeneratedTypes {
+    this.usedDefinitions.clear()
     const pathItem = (this.doc.paths as any)[path]
     const op = pathItem ? pathItem[method.toLowerCase()] : null
 
     if (!op) return { queryParams: '', requestBody: '', responseData: '', models: '' }
 
-    // 1. 先解析主接口（这会通过递归触发 resolveRef 收集依赖）
+    // 执行顺序很重要：先解析主类型触发收集，再生成 models
     const queryParams = this.generateQueryParams(op)
     const requestBody = this.generateRequestBody(op)
     const responseData = this.generateResponse(op)
-
-    // 2. 根据收集到的 usedDefinitions 生成 models 定义
     const models = this.generateModelsCode()
 
-    return {
-      queryParams,
-      requestBody,
-      responseData,
-      models,
-    }
+    return { queryParams, requestBody, responseData, models }
   }
 
   private generateQueryParams(op: any): string {
@@ -189,28 +188,25 @@ export class SwaggerToTS {
     if (params.length === 0) return '// 无查询参数'
     let code = `${this.exp}interface QueryParams {\n`
     params.forEach((p: any) => {
-      const param = p.$ref ? this.resolveRef(p.$ref).schema : p
+      // 兼容参数直接引用模型
+      const paramSchema = p.$ref ? this.resolveRef(p.$ref).schema : p.schema || p
       code += this.formatField(
-        param.name,
-        this.getTSType(param.schema || param),
-        param.required,
-        param.description,
+        p.name || paramSchema.name,
+        this.getTSType(paramSchema),
+        p.required,
+        p.description,
       )
     })
     return code + `}`
   }
 
   private generateRequestBody(op: any): string {
-    const v3Body = op.requestBody?.content?.['application/json']?.schema
+    const v3Body =
+      op.request_body?.content?.['application/json']?.schema ||
+      op.requestBody?.content?.['application/json']?.schema
     const v2Body = op.parameters?.find((p: any) => p.in === 'body')?.schema
     const schema = v3Body || v2Body
     if (!schema) return '// 无 Request Body'
     return `${this.exp}type RequestBody = ${this.getTSType(schema)}${this.semi}`
-  }
-
-  private generateResponse(op: any): string {
-    const successRes = op.responses?.['200'] || op.responses?.default
-    const schema = successRes?.schema || successRes?.content?.['application/json']?.schema
-    return `${this.exp}type ResponseData = ${schema ? this.getTSType(schema) : 'any'}${this.semi}`
   }
 }
