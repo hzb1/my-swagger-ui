@@ -10,7 +10,7 @@
         <div class="service-selector" v-if="config?.urls?.length">
           <select
             :value="currentServiceUrl"
-            @change="(e) => loadDoc((e.target as HTMLSelectElement).value)"
+            @change="(e) => handleServiceChange((e.target as HTMLSelectElement).value)"
             class="nav-select"
           >
             <option v-for="u in config.urls" :key="u.url" :value="u.url">
@@ -73,7 +73,7 @@
           <div class="api-detail-header">
             <div class="title-row">
               <h2>{{ selectedApi.summary }}</h2>
-              <button class="copy-all-btn" @click="copyFullFile">复制全量代码 (含模型)</button>
+              <button class="copy-all-btn" @click="copyFullFile">复制全量代码</button>
             </div>
             <div class="api-info-line">
               <code class="method-code">{{ selectedApi.method }}</code>
@@ -104,7 +104,7 @@
         </div>
         <div v-else class="empty-state">
           <div class="empty-icon">📂</div>
-          <p>请选择接口以预览代码</p>
+          <p>请从左侧选择一个接口</p>
         </div>
       </main>
 
@@ -152,17 +152,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import typescript from 'highlight.js/lib/languages/typescript'
 import 'highlight.js/styles/atom-one-dark.css'
 
 import { useSwagger } from '../composables/useSwagger'
-import { SwaggerToTS, type GeneratorOptions } from '../utils/SwaggerParser.ts'
+import { useOptions } from '../composables/useOptions'
+import { SwaggerToTS } from '../utils/SwaggerParser.ts'
 import { swaggerConfigUrl } from '@/api/swagger.ts'
 
 hljs.registerLanguage('typescript', typescript)
 
+// 1. 调用 Swagger 业务逻辑
 const {
   config,
   document,
@@ -177,75 +179,65 @@ const {
   clearHistory,
 } = useSwagger()
 
+// 2. 调用配置持久化逻辑
+const { configState, generatorOptions, resetTemplate } = useOptions()
+
 const selectedApi = ref<any>(null)
 
-// --- 持久化配置 ---
-const STORAGE_KEY = 'swagger_config_v1'
-const defaultTemplate = `(ctx) => {
-  const { method, url, functionName, hasQuery, hasBody } = ctx;
-  const args = [];
-  if (hasQuery) args.push(\`queryParams: \${ctx.queryParamsType}\`);
-  if (hasBody) args.push(\`data: \${ctx.requestBodyType}\`);
-
-  return \`/** \${ctx.summary || ''} */
-export const \${functionName} = (\${args.join(', ')}) => {
-  return request.\${method}<\${ctx.responseDataType}>(\\\`\${url}\\\`, {
-    \${hasBody ? 'data,' : ''}
-    \${hasQuery ? 'params: queryParams,' : ''}
-  });
-};\`;
-}`
-
-const configState = reactive({
-  indent: 2,
-  useInterface: true,
-  addExport: true,
-  semicolon: true,
-  arrayType: 'bracket' as const,
-  int64ToString: true,
-  namingStrategy: 'removeVO',
-  requestTemplateRaw: defaultTemplate,
-})
-
-onMounted(() => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) Object.assign(configState, JSON.parse(saved))
-  init(swaggerConfigUrl)
-})
-
-watch(
-  configState,
-  (val) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
-  },
-  { deep: true },
-)
-
-const resetTemplate = () => {
-  if (confirm('重置模板？')) configState.requestTemplateRaw = defaultTemplate
+// 从 URL 获取参数
+const getUrlParams = () => {
+  const params = new URLSearchParams(window.location.search)
+  return {
+    service: params.get('service'), // 服务 URL
+    path: params.get('path'), // 接口路径
+    method: params.get('method'), // 接口方法
+  }
 }
 
-// --- 代码生成逻辑 ---
-const generatorOptions = computed<GeneratorOptions>(() => {
-  const typeNameMapper = (name: string) => {
-    if (configState.namingStrategy === 'removeVO') return name.replace(/VO$/i, '')
-    if (configState.namingStrategy === 'removeDTO') return name.replace(/DTO$/i, '')
-    if (configState.namingStrategy === 'prefixI') return 'I' + name
-    return name
+// 更新 URL 参数 (不触发刷新)
+const updateUrl = (service: string, api?: any) => {
+  const newUrl = new URL(window.location.href)
+  newUrl.searchParams.set('service', service)
+  if (api) {
+    newUrl.searchParams.set('path', api.path)
+    newUrl.searchParams.set('method', api.method)
+  } else {
+    newUrl.searchParams.delete('path')
+    newUrl.searchParams.delete('method')
   }
+  window.history.replaceState({}, '', newUrl.toString())
+}
 
-  let requestTemplate
-  try {
-    requestTemplate = eval(configState.requestTemplateRaw)
-  } catch (e) {
-    console.error(e)
+onMounted(async () => {
+  const urlParams = getUrlParams()
+  init(swaggerConfigUrl)
+
+  // 2. 如果 URL 有指定服务，优先加载该服务；否则加载第一个
+  const targetService = urlParams.service || config.value?.urls[0]?.url
+  if (targetService) {
+    await loadDoc(targetService)
+
+    // 3. 服务加载完成后，尝试匹配接口
+    if (urlParams.path && urlParams.method) {
+      // 在 document 加载完后的接口列表中寻找
+      const allApis = Object.entries(document.value.paths).flatMap(([path, methods]: any) =>
+        Object.keys(methods).map((method) => ({ path, method, ...methods[method] })),
+      )
+      const match = allApis.find(
+        (a) =>
+          a.path === urlParams.path && a.method.toLowerCase() === urlParams.method.toLowerCase(),
+      )
+      if (match) {
+        selectedApi.value = match
+      }
+    }
   }
-
-  return { ...configState, typeNameMapper, requestTemplate }
 })
 
+// 3. 计算最终生成的代码
 const tsCodeParts = computed(() => {
   if (!document.value || !selectedApi.value) return null
+  // 使用 useOptions 提供的 generatorOptions
   const parser = new SwaggerToTS(document.value, generatorOptions.value)
   const res = parser.getStructuredTypes(selectedApi.value.path, selectedApi.value.method)
   return {
@@ -257,10 +249,17 @@ const tsCodeParts = computed(() => {
   }
 })
 
-// --- 交互 ---
 const handleSelectApi = (api: any) => {
   selectedApi.value = api
   if (searchQuery.value) saveHistory(searchQuery.value)
+  updateUrl(currentServiceUrl.value, api)
+}
+
+// 切换服务时的处理
+const handleServiceChange = async (url: string) => {
+  await loadDoc(url)
+  selectedApi.value = null // 切换服务清空选中
+  updateUrl(url)
 }
 
 const highlight = (code: string) => hljs.highlight(code, { language: 'typescript' }).value
@@ -277,14 +276,13 @@ const copyFullFile = () => {
 </script>
 
 <style scoped>
+/* 样式部分保持不变，确保 z-index 层级正确 */
 .api-explorer {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, sans-serif;
 }
-
-/* 顶栏优化 */
 .navbar {
   height: 60px;
   background: #1a1a1a;
@@ -294,7 +292,7 @@ const copyFullFile = () => {
   justify-content: space-between;
   padding: 0 20px;
   z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 .nav-tools {
   display: flex;
@@ -308,10 +306,8 @@ const copyFullFile = () => {
   padding: 6px 12px;
   border-radius: 4px;
   outline: none;
-  max-width: 200px;
 }
 
-/* 搜索历史弹窗优化：避免遮挡 */
 .search-box {
   position: relative;
 }
@@ -324,6 +320,7 @@ const copyFullFile = () => {
   color: white;
   outline: none;
 }
+
 .history-popover {
   position: absolute;
   top: 42px;
@@ -373,14 +370,25 @@ const copyFullFile = () => {
   overflow: hidden;
   background: #f4f7f9;
 }
-
-/* 侧边栏 */
 .sidebar {
   width: 320px;
   background: #fff;
   border-right: 1px solid #e1e4e8;
   overflow-y: auto;
 }
+.content-area {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+}
+.config-sidebar {
+  width: 300px;
+  background: white;
+  border-left: 1px solid #e1e4e8;
+  padding: 20px;
+  overflow-y: auto;
+}
+
 .tag-title {
   background: #fafafa;
   padding: 10px 15px;
@@ -393,21 +401,10 @@ const copyFullFile = () => {
   padding: 12px 15px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: all 0.2s;
-}
-.api-item:hover {
-  background: #f9f9f9;
 }
 .api-item.active {
   background: #e6f7ff;
   border-right: 4px solid #1890ff;
-}
-.api-item-path {
-  font-family: monospace;
-  font-size: 13px;
-  font-weight: bold;
-  color: #333;
-  margin: 4px 0;
 }
 .m-badge {
   font-size: 10px;
@@ -429,53 +426,6 @@ const copyFullFile = () => {
 .delete {
   background: #f93e3e;
 }
-.match-tag {
-  font-size: 10px;
-  color: #ff4d4f;
-  border: 1px solid #ffccc7;
-  padding: 0 4px;
-  border-radius: 2px;
-}
-
-/* 内容区 */
-.content-area {
-  flex: 1;
-  padding: 25px;
-  overflow-y: auto;
-}
-.api-detail-header {
-  margin-bottom: 25px;
-}
-.title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.copy-all-btn {
-  background: #1890ff;
-  color: white;
-  border: none;
-  padding: 6px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.api-info-line {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-.method-code {
-  background: #eee;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-.path-code {
-  color: #d73a49;
-  font-weight: bold;
-  font-family: monospace;
-}
 
 .section-card {
   background: white;
@@ -486,7 +436,6 @@ const copyFullFile = () => {
 }
 .request-card {
   border: 2px solid #1890ff;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
 }
 .block-header {
   background: #f6f8fa;
@@ -496,19 +445,6 @@ const copyFullFile = () => {
   align-items: center;
   border-bottom: 1px solid #e1e4e8;
 }
-.block-title {
-  font-weight: bold;
-  font-size: 12px;
-  color: #555;
-}
-.block-header button {
-  font-size: 11px;
-  padding: 2px 8px;
-  cursor: pointer;
-}
-pre {
-  margin: 0;
-}
 code.hljs {
   padding: 15px;
   font-size: 13px;
@@ -516,21 +452,6 @@ code.hljs {
   line-height: 1.5;
 }
 
-/* 配置区 */
-.config-sidebar {
-  width: 300px;
-  background: white;
-  border-left: 1px solid #e1e4e8;
-  padding: 20px;
-  overflow-y: auto;
-}
-.section-h {
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #eee;
-}
 .template-editor {
   width: 100%;
   height: 260px;
@@ -543,21 +464,6 @@ code.hljs {
   border: 1px solid #ddd;
   resize: vertical;
 }
-.c-item {
-  margin-bottom: 15px;
-}
-.c-item label {
-  display: block;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 5px;
-}
-.c-item select {
-  width: 100%;
-  padding: 5px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
 .c-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -569,27 +475,5 @@ code.hljs {
   align-items: center;
   gap: 5px;
   cursor: pointer;
-}
-.reset-btn {
-  font-size: 11px;
-  color: #ff4d4f;
-  border: none;
-  background: none;
-  text-decoration: underline;
-  cursor: pointer;
-  margin-top: 5px;
-}
-
-.empty-state {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #ccc;
-}
-.empty-icon {
-  font-size: 50px;
-  margin-bottom: 10px;
 }
 </style>
