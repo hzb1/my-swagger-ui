@@ -132,6 +132,10 @@
           </div>
 
           <div class="c-grid">
+            <label class="check-item">
+              <input type="checkbox" v-model="configState.showExample" />
+              展示 Example
+            </label>
             <label class="check-item"
               ><input type="checkbox" v-model="configState.int64ToString" /> Int64转String</label
             >

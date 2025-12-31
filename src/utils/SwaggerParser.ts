@@ -22,6 +22,7 @@ export interface GeneratorOptions {
   typeNameMapper?: (rawName: string) => string
   int64ToString?: boolean
   requestTemplate?: (ctx: TemplateContext) => string
+  showExample?: boolean
 }
 
 export interface GeneratedTypes {
@@ -47,6 +48,7 @@ export class SwaggerToTS {
       typeNameMapper: options.typeNameMapper ?? ((name) => name),
       int64ToString: options.int64ToString ?? true,
       requestTemplate: options.requestTemplate as any,
+      showExample: options.showExample ?? true, // 默认开启
     }
   }
 
@@ -69,6 +71,32 @@ export class SwaggerToTS {
     return { schema: current, name: mappedName }
   }
 
+  private formatJSDoc(
+    doc: { summary?: string; description?: string; example?: any },
+    indentDepth = 0,
+  ): string {
+    const lines: string[] = []
+    const indent = ' '.repeat(this.options.indent * indentDepth)
+
+    if (doc.summary) lines.push(`${doc.summary}`)
+    if (doc.description) lines.push(`${doc.description}`)
+
+    // 根据配置决定是否展示示例
+    if (this.options.showExample && doc.example) {
+      const exampleStr = typeof doc.example === 'object' ? JSON.stringify(doc.example) : doc.example
+      lines.push(`@example ${exampleStr}`)
+    }
+
+    if (lines.length === 0) return ''
+
+    if (lines.length === 1) {
+      return `${indent}/** ${lines[0]} */\n`
+    }
+
+    const content = lines.map((line) => `${indent} * ${line}`).join('\n')
+    return `${indent}/**\n${content}\n${indent} */\n`
+  }
+
   private getTSType(schema: any, depth = 1): string {
     if (!schema) return 'any'
     if (schema.$ref) return this.resolveRef(schema.$ref).name
@@ -82,12 +110,13 @@ export class SwaggerToTS {
       props.forEach(([key, prop]: [string, any]) => {
         const isRequired = schema.required?.includes(key)
         const indent = ' '.repeat(this.options.indent * depth)
+
+        // --- 注入属性注释 ---
+        objStr += this.formatJSDoc(prop, depth)
+
         objStr += `${indent}${key}${isRequired ? '' : '?'}: ${this.getTSType(prop, depth + 1)}${this.semi}\n`
       })
       return objStr + ' '.repeat(this.options.indent * (depth - 1)) + '}'
-    }
-    if (schema.type === 'integer' || schema.type === 'number') {
-      return this.options.int64ToString && schema.format === 'int64' ? 'string' : 'number'
     }
     return schema.type || 'any'
   }
@@ -110,7 +139,15 @@ export class SwaggerToTS {
 
     let models = ''
     this.usedDefinitions.forEach((schema, name) => {
+      // 注入 Model 顶层注释
+      models += this.formatJSDoc(schema)
       models += `${this.exp}${this.options.useInterface ? 'interface' : 'type'} ${name} ${this.getTSType(schema)}\n\n`
+    })
+
+    // 构造请求函数的 JSDoc
+    const functionJSDoc = this.formatJSDoc({
+      summary: op.summary,
+      description: op.description,
     })
 
     const ctx: TemplateContext = {
@@ -127,12 +164,16 @@ export class SwaggerToTS {
       operationId: op.operationId,
     }
 
+    // 在模板前拼接注释
+    const rawFunction = this.options.requestTemplate ? this.options.requestTemplate(ctx) : ''
+    const requestFunctionWithDoc = functionJSDoc + rawFunction
+
     return {
       queryParams,
       requestBody,
       responseData,
       models,
-      requestFunction: this.options.requestTemplate ? this.options.requestTemplate(ctx) : '',
+      requestFunction: requestFunctionWithDoc,
     }
   }
 

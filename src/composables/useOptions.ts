@@ -24,6 +24,7 @@ export function useOptions() {
     int64ToString: true,
     namingStrategy: 'removeVO',
     requestTemplateRaw: defaultTemplate,
+    showExample: true, // 默认开启
   })
 
   // 初始化加载
