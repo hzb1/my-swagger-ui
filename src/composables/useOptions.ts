@@ -2,15 +2,20 @@ import { reactive, watch, onMounted, computed } from 'vue'
 import type { GeneratorOptions } from '../utils/SwaggerParser'
 
 const STORAGE_KEY = 'swagger_config_v1'
+
 const defaultTemplate = (ctx) => {
   const { method, url, functionName, queryParamsType, requestBodyType, responseDataType } = ctx
 
   const args = []
+  // 如果有 path 参数或 query 参数，统一用 params
   if (ctx.hasQuery) args.push(`params: ${queryParamsType}`)
   if (ctx.hasBody) args.push(`data: ${requestBodyType}`)
 
-  return `export const ${functionName} = (${args.join(', ')}): Promise<${responseDataType}> => {
-  return request.${method}(\`${url}\`, { ${ctx.hasBody ? 'data,' : ''} ${ctx.hasQuery ? 'params,' : ''} });
+  return `export const ${functionName} = (${args.join(', ')}) => {
+  return request.${method}<${responseDataType}>(\`${url}\`, { 
+    ${ctx.hasBody ? 'data,' : ''} 
+    ${ctx.hasQuery ? 'params,' : ''} 
+  });
 };`
 }
 

@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'SwaggerExplorer',
       component: () => import('@/views/SwaggerExplorer.vue'),
     },
+    {
+      path: '/proxyFetchDemo',
+      name: 'ProxyFetchDemo',
+      component: () => import('../views/proxyFetchDemo/ProxyFetchDemoView.vue'),
+    },
   ],
 })
 

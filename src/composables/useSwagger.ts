@@ -1,9 +1,15 @@
-import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, type Ref, unref } from 'vue'
 import type { OpenAPI } from 'openapi-types'
 import { apiProxyPrefix } from '@/config.ts'
+import { request } from '@/utils/proxySdk.ts'
 
-export function useSwagger() {
+type UseSwaggerOptions = {
+  // 接口文档域名和端口
+  apiDomain?: string | Ref<string>
+}
+
+export function useSwagger(options?: UseSwaggerOptions) {
+  const apiDomain = unref(options?.apiDomain)
   const config = ref<{ urls: { name: string; url: string }[] } | null>(null)
   const document = ref<OpenAPI.Document | null>(null)
   const currentServiceUrl = ref('')
@@ -25,9 +31,11 @@ export function useSwagger() {
   const init = async (configUrl: string) => {
     loading.value = true
     try {
-      const res = await axios.get(configUrl)
-      config.value = res.data
-      if (res.data.urls?.length) await loadDoc(res.data.urls[0].url)
+      const response = await request(configUrl)
+      const res = await response.response.body.value
+      console.log('init config: ', res)
+      config.value = res
+      if (res.urls?.length) await loadDoc(apiDomain + res.urls[0].url)
     } catch (err: any) {
       error.value = '配置加载失败'
     } finally {
@@ -40,8 +48,9 @@ export function useSwagger() {
     loading.value = true
     currentServiceUrl.value = url
     try {
-      const res = await axios.get(`${apiProxyPrefix}${url}`)
-      document.value = res.data
+      const response = await request(url)
+      const res = await response.response.body.value
+      document.value = res
     } catch (err: any) {
       error.value = '文档加载失败'
     } finally {

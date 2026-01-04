@@ -2,7 +2,7 @@ import type { SwaggerConfig, SwaggerDoc } from '@/api/data.type.ts'
 import { useAppStore } from '@/stores/useAppStore.ts'
 
 // export const apiDocsUrl = '/api-proxy/transport/v3/api-docs'
-export const swaggerConfigUrl = '/api-proxy/v3/api-docs/swagger-config'
+export const swaggerConfigUrl = '/api-docs/swagger-config'
 
 const isMock: boolean = import.meta.env.VITE_MOCK === 'true'
 console.warn('VITE_MOCK', isMock, import.meta.env.VITE_MOCK)

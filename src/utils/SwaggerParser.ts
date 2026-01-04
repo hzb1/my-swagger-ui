@@ -60,14 +60,25 @@ export class SwaggerToTS {
   }
 
   private resolveRef(ref: string) {
-    const parts = ref.replace('#/', '').split('/')
+    // 1. 处理路径：移除开头的 #/
+    const path = ref.replace(/^#\//, '')
+    const parts = path.split('/')
     const rawName = parts[parts.length - 1]
     const mappedName = this.options.typeNameMapper(rawName)
+
+    // 2. 深度查找定义
     let current: any = this.doc
-    for (const part of parts) current = current?.[part]
-    if (!this.usedDefinitions.has(mappedName) && current) {
-      this.usedDefinitions.set(mappedName, current)
+    for (const part of parts) {
+      current = current?.[part]
     }
+
+    // 3. 记录已使用的定义（用于生成 models）
+    if (current && !this.usedDefinitions.has(mappedName)) {
+      this.usedDefinitions.set(mappedName, current)
+      // 递归解析内部可能存在的其他引用，确保它们也被加入 usedDefinitions
+      this.getTSType(current)
+    }
+
     return { schema: current, name: mappedName }
   }
 
@@ -118,15 +129,30 @@ export class SwaggerToTS {
       })
       return objStr + ' '.repeat(this.options.indent * (depth - 1)) + '}'
     }
+    if (schema.type === 'integer' || schema.type === 'number') {
+      // 优先级 1: int64ToString 开启且格式匹配，转 string
+      if (this.options.int64ToString && schema.format === 'int64') {
+        return 'string'
+      }
+      // 优先级 2: integerToNumber 开启，转 number
+      return 'number'
+    }
     return schema.type || 'any'
   }
 
   private extractRawType(typeStr: string): string {
     if (!typeStr || typeStr.startsWith('//')) return 'any'
-    const index = typeStr.indexOf('=')
-    if (index === -1) return 'any'
-    const res = typeStr.substring(index + 1).trim()
-    return res.endsWith(';') ? res.slice(0, -1) : res
+
+    // 匹配：export type ResponseData = { ... } 或 export type ResponseData = UserVO;
+    // 使用正则匹配等号后面的所有内容，直到末尾或分号
+    const match = typeStr.match(/=\s+([\s\S]+?)(;|$)/)
+
+    if (match && match[1]) {
+      const res = match[1].trim()
+      return res || 'any'
+    }
+
+    return 'any'
   }
 
   public getStructuredTypes(path: string, method: string): GeneratedTypes {
@@ -136,6 +162,9 @@ export class SwaggerToTS {
     const queryParams = this.generateQueryParams(op)
     const requestBody = this.generateRequestBody(op)
     const responseData = this.generateResponse(op)
+
+    // Debug 打印：看看生成的字符串是什么样的
+    // console.log('Generated Response String:', responseData, op)
 
     let models = ''
     this.usedDefinitions.forEach((schema, name) => {
@@ -197,10 +226,32 @@ export class SwaggerToTS {
   }
 
   private generateResponse(op: any) {
-    const res = op.responses?.['200'] || op.responses?.default
-    const schema = res?.schema || res?.content?.['application/json']?.schema
-    return schema
-      ? `${this.exp}type ResponseData = ${this.getTSType(schema)}${this.semi}`
-      : `${this.exp}type ResponseData = any${this.semi}`
+    // 1. 获取 200 或默认响应
+    const res = op.responses?.['200'] || op.responses?.['201'] || op.responses?.default
+    if (!res) return `${this.exp}type ResponseData = any${this.semi}`
+
+    // 2. 这里的逻辑做了增强：
+    //    - 优先匹配 'application/json'
+    //    - 其次匹配 '*/*'
+    //    - 如果都没有，取 content 下的第一个定义的 schema (OpenAPI 3.0)
+    //    - 最后降级兼容 Swagger 2.0 的 res.schema
+    let schema = null
+
+    if (res.content) {
+      schema =
+        res.content['application/json']?.schema ||
+        res.content['*/*']?.schema ||
+        Object.values(res.content)[0]?.['schema']
+    } else {
+      schema = res.schema
+    }
+
+    if (!schema) {
+      return `${this.exp}type ResponseData = any${this.semi}`
+    }
+
+    // 3. 解析类型
+    const typeStr = this.getTSType(schema)
+    return `${this.exp}type ResponseData = ${typeStr}${this.semi}`
   }
 }
