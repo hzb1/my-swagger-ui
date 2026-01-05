@@ -224,12 +224,12 @@ onMounted(async () => {
     // 3. 服务加载完成后，尝试匹配接口
     if (urlParams.path && urlParams.method) {
       // 在 document 加载完后的接口列表中寻找
-      const allApis = Object.entries(document.value.paths).flatMap(([path, methods]: any) =>
+      const allApis = Object.entries(document.value?.paths!).flatMap(([path, methods]: any) =>
         Object.keys(methods).map((method) => ({ path, method, ...methods[method] })),
       )
       const match = allApis.find(
         (a) =>
-          a.path === urlParams.path && a.method.toLowerCase() === urlParams.method.toLowerCase(),
+          a.path === urlParams.path && a.method.toLowerCase() === urlParams.method?.toLowerCase(),
       )
       if (match) {
         selectedApi.value = match

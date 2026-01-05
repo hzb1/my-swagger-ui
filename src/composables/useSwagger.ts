@@ -9,7 +9,6 @@ type UseSwaggerOptions = {
 }
 
 export function useSwagger(options?: UseSwaggerOptions) {
-  const apiDomain = unref(options?.apiDomain)
   const config = ref<{ urls: { name: string; url: string }[] } | null>(null)
   const document = ref<OpenAPI.Document | null>(null)
   const currentServiceUrl = ref('')
@@ -35,7 +34,7 @@ export function useSwagger(options?: UseSwaggerOptions) {
       const res = await response.response.body.value
       console.log('init config: ', res)
       config.value = res
-      if (res.urls?.length) await loadDoc(apiDomain + res.urls[0].url)
+      if (res.urls?.length) await loadDoc(res.urls[0].url)
     } catch (err: any) {
       error.value = '配置加载失败'
     } finally {
@@ -48,7 +47,8 @@ export function useSwagger(options?: UseSwaggerOptions) {
     loading.value = true
     currentServiceUrl.value = url
     try {
-      const response = await request(url)
+      const apiDomain = unref(options?.apiDomain)
+      const response = await request(apiDomain + url)
       const res = await response.response.body.value
       document.value = res
     } catch (err: any) {

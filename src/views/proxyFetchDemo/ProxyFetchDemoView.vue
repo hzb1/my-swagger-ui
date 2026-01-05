@@ -12,7 +12,11 @@
 
       <div>
         <label>Swagger 服务 IP: </label>
-        <input v-model="ip" placeholder="输入 IP 地址" style="width: 300px" />
+        <input
+          v-model="ip"
+          placeholder="输入 IP 地址 ( 例如: http://localhost:9966 )"
+          style="width: 300px"
+        />
 
         <label style="margin-left: 10px">版本: </label>
         <select v-model="version">
@@ -185,9 +189,13 @@ import 'highlight.js/styles/atom-one-dark.css'
 
 hljs.registerLanguage('typescript', typescript)
 
+/**
+ * Swagger 服务 IP 地址
+ * 例如: http://localhost:9966
+ * 例如: http://172.16.13.93:9000
+ */
 const ip = ref('http://localhost:9966')
 const version = ref<'v2' | 'v3'>('v3')
-const apis = ref<SwaggerApi[]>([])
 const selectedApi = ref<SwaggerApi | null>(null)
 const loadingSwagger = ref(false)
 
